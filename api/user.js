@@ -1290,5 +1290,180 @@ router.get('/myrequest?', (req, res) => {
 
 //end
 
+//  change seller status
+router.put('/change_seller_status?', (req, res) => {
+
+    
+
+    switch (req.query.status) {
+        case '3':
+            conn.query('update payments set seller_status=?, payment_status=2 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Processing',
+                    })
+        
+                }
+        
+            })
+        
+
+            break;
+        case '5':
+
+            conn.query('update payments set seller_status=?, buyer_status=2 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Decline',
+                    })
+        
+                }
+        
+            })
+        
+
+            break;
+        case '7':
+  conn.query('update payments set seller_status=?, buyer_status=1 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Cancel Request',
+                    })
+        
+                }
+        
+            })
+         break;
+        case '8':
+            conn.query('update payments set seller_status=?, buyer_status=0 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Order Completed',
+                    })
+        
+                }
+        
+            })
+       break;
+        case '14':
+            conn.query('update payments set seller_status=? where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Dispute',
+                    })
+        
+                }
+        
+            })
+        break;
+        case '16':
+            conn.query('update payments set seller_status=?, cancel_accept=1 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Order Cancelled',
+                    })
+        
+                }
+        
+            })
+        break;
+        default:
+            res.send({
+                status: 400,
+                message: 'Undefine function called',
+            })
+    } 
+});
+// end
+//change buyer status
+
+router.put('/change_buyer_status?', (req, res) => {
+
+    switch (req.query.status) {
+        case '1':
+            conn.query('update payments set buyer_status=?, seller_status=14 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Order Cancelled by Buyer',
+                    })
+        
+                }
+        
+            })
+            break;
+        case '2':
+
+            conn.query('update payments set buyer_status=?, seller_status=14 where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                if (!err) {
+        
+                    res.send({
+                        status: 200,
+                        message: 'Dispute',
+                    })
+
+                }
+        
+            })
+            break;
+            case '6':
+                conn.query('update payments set seller_status=?, where id=?', [req.query.status, req.query.id], (err, row) => {
+
+                    if (!err) {
+            
+                        res.send({
+                            status: 200,
+                            message: 'Order Completed',
+                        })
+            
+                    }
+            
+                })
+                break;
+                case '15':
+                    conn.query('update payments set seller_status=3,  where id=?', [req.query.id], (err, row) => {
+
+                        if (!err) {
+                
+                            res.send({
+                                status: 200,
+                                message: 'Revision',
+                            })
+                
+                        }
+                
+                    })           
+   break;
+
+        default:
+            res.send({
+                status: 400,
+                message: 'Undefine function called',
+            })
+    } 
+
+});
+
 
 module.exports = router;
