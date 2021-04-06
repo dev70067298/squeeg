@@ -9,7 +9,13 @@ var fs = require('fs');
 var crypto = require('crypto');
 var path = require('path');
 const { Console } = require('console');
+var app = express();
 
+
+const abcd = [];
+const http = require('http').Server(app);
+
+const io = require('socket.io')(http);
 
 
 //login api
@@ -29,9 +35,9 @@ router.post('/login?', (req, res) => {
                                 conn.query('select state_name from states where state_id = ?', [row1[0].state], (err, row122) => {
                                     conn.query('select city_name from cities where city_id = ?', [row1[0].city], (err, row123) => {
 
-                                        var new1 = [].concat(row121,row122,row123);
-                                      
-                                        var new11 = [...row1,...new1];
+                                        var new1 = [].concat(row121, row122, row123);
+
+                                        var new11 = [...row1, ...new1];
 
                                         console.log(new11);
 
@@ -39,7 +45,7 @@ router.post('/login?', (req, res) => {
                                             status: 200,
                                             message: 'loggin',
                                             user: new11,
-                                            
+
                                         })
                                     })
                                 })
@@ -411,6 +417,32 @@ router.post('/forget?', (req, res) => {
 
 //validate otp
 
+router.put('/checkotp?', (req, res) => {
+    conn.query('select * from members where email=? and otp=?', [req.query.email, req.query.otp], (err, row11) => {
+
+        if (row11.length == 0) {
+            res.send({
+                status: '400',
+                message: 'otp not verified',
+            })
+        }
+        else {
+            conn.query('update members set verified=?, status=?, otp=? where email=?', [0, 0, '', req.query.email], (err, row) => {
+
+                res.send({
+                    status: '200',
+                    message: 'otp verified',
+                })
+
+
+            })
+        }
+    })
+
+});
+
+//end
+
 //profile update
 
 router.put('/profileupdate?', (req, res) => {
@@ -438,18 +470,18 @@ router.put('/profileupdate?', (req, res) => {
     //     })
     // }
     // else {
-        conn.query('UPDATE members SET username=?, fullname=?, country=?, state=?, city=? WHERE USERID=?', [req.query.username, req.query.fullname, req.query.country, req.query.state, req.query.city, req.query.id], (err, row) => {
+    conn.query('UPDATE members SET username=?, fullname=?, country=?, state=?, city=? WHERE USERID=?', [req.query.username, req.query.fullname, req.query.country, req.query.state, req.query.city, req.query.id], (err, row) => {
 
-            if (!err) {
-                conn.query('select * from members where USERID = ?', [req.query.id], (err1, row1) => {
+        if (!err) {
+            conn.query('select * from members where USERID = ?', [req.query.id], (err1, row1) => {
 
                 conn.query('select country from country where id = ?', [row1[0].country], (err, row121) => {
                     conn.query('select state_name from states where state_id = ?', [row1[0].state], (err, row122) => {
                         conn.query('select city_name from cities where city_id = ?', [row1[0].city], (err, row123) => {
 
-                            var new1 = [].concat(row121,row122,row123);
-                          
-                            var new11 = [...row1,...new1];
+                            var new1 = [].concat(row121, row122, row123);
+
+                            var new11 = [...row1, ...new1];
 
                             console.log(new11);
 
@@ -457,24 +489,24 @@ router.put('/profileupdate?', (req, res) => {
 
                                 status: 200,
                                 message: 'profile updated',
-                                user:new11
+                                user: new11
                             })
-                                
-                            })
+
                         })
                     })
-       
                 })
-            }
-            else {
 
-                res.send({
-                    status: 400,
-                    message: 'failed'
-                })
-            }
+            })
+        }
+        else {
 
-        })
+            res.send({
+                status: 400,
+                message: 'failed'
+            })
+        }
+
+    })
 
     //}
 
@@ -529,6 +561,46 @@ router.put('/logout?', (req, res) => {
 
 //end
 
+//change order status by seller
+
+router.put('/change_order_status_seller?', (req, res) => {
+
+    conn.query('update payments set seller_status=? where id=?', [req.query.status, req.query.id], (err, row) => {
+
+        if (!err) {
+
+            res.send({
+                status: 200,
+                message: 'status successfully changed',
+            })
+
+        }
+
+    })
+
+});
+
+//end
+//complete request declind by seller
+
+router.put('/change_order_status_seller?', (req, res) => {
+
+    conn.query('update payments set seller_status=? where id=?', [req.query.status, req.query.id], (err, row) => {
+
+        if (!err) {
+
+            res.send({
+                status: 200,
+                message: 'status successfully changed',
+            })
+
+        }
+
+    })
+
+});
+
+//end
 
 
 //Update Profile
@@ -677,6 +749,55 @@ router.get('/city?', (req, res) => {
 
 //End
 
+
+//order Api
+
+router.get('/orders?', (req, res) => {
+
+
+    if (req.query.role == 1) {
+        conn.query('select members.username as seller_name,members.profilepicture,payments.seller_status,payments.created_at as order_date,payments.item_amount,payments.id as order_id,buyer_request.delivery_time,sell_gigs.title from payments left join members on payments.seller_id = members.USERID LEFT join sell_gigs on payments.gigs_id = sell_gigs.id left join buyer_request on payments.USERID = buyer_request.USERID where payments.USERID = ?', [req.query.id], (err, row) => {
+            if (!err && row.length > 0) {
+                res.send({
+                    status: 200,
+                    order: row
+                })
+            }
+            else {
+                res.send({
+                    status: 400,
+                    order: []
+                })
+            }
+        })
+
+    }
+    else if (req.query.role == 0) {
+        conn.query('select members.username as buyer_name,members.profilepicture,payments.seller_status,payments.created_at as order_date,payments.item_amount,payments.id as order_id,buyer_request.delivery_time,sell_gigs.title from payments left join members on payments.USERID = members.USERID LEFT join sell_gigs on payments.gigs_id = sell_gigs.id left join buyer_request on payments.USERID = buyer_request.USERID where payments.seller_id = ?', [req.query.id], (err, row) => {
+            if (!err && row.length > 0) {
+                res.send({
+                    status: 200,
+                    order: row
+                })
+            }
+            else {
+                res.send({
+                    status: 400,
+                    order: []
+                })
+            }
+        })
+
+    }
+
+
+});
+
+//End
+
+
+
+
 //my services
 
 router.get('/myservices?', (req, res) => {
@@ -703,6 +824,32 @@ router.get('/myservices?', (req, res) => {
 
 
 //chat between users
+
+// io.on('connection', function (socket) {
+//     console.log('A user connected');
+//     socket.on("chat message", msg => {
+
+
+
+
+//         conn.query('insert into chats(chat_from,chat_to,content,status) values(?,?,?,?)', [msg.user_id, msg.friend_id,msg.message, 0], (err, row) => {
+
+//             var ab = msg.user_id + msg.friend_id;
+//             console.log(ab);
+//             console.log(msg)
+//             io.emit(ab, msg);
+
+//         })
+
+//     });
+//     //Whenever someone disconnects this piece of code executed
+//     socket.on('disconnect', function () {
+//         console.log('A user disconnected');
+//     });
+// });
+
+
+
 
 
 router.post('/chat?', upload.single('file'), (req, res) => {
@@ -733,19 +880,97 @@ router.post('/chat?', upload.single('file'), (req, res) => {
 })
 //end
 
+//add payment details
+
+router.post('/payments?', (req, res) => {
+    var date = moment().format('YYYY-MM-DD HH:mm:ss');
+
+    conn.query('INSERT into payments (USERID,gigs_id,seller_id,item_amount,created_at,pay_method,seller_status,delivery_date,source) VALUES(?,?,?,?,?,?,?,?,?)', [req.query.u_id, req.query.g_id, req.query.s_id, req.query.amount, date, req.query.method, 3, date, req.query.source,], (err, row) => {
+        if (!err) {
+            res.send({
+                status: 200,
+                user: row,
+                message: 'payment detail inserted'
+            })
+        }
+        else {
+            res.send({
+                status: 400,
+                message: 'failed'
+            })
+
+        }
+
+    })
+
+})
+
+//end
+
+//user chat history
+
+router.get('/chat_history?', (req, res) => {
+
+    conn.query('SELECT chat_from,chat_to,content,date_time FROM chats WHERE (chat_from = ? AND chat_to = ?) OR (chat_to =? AND chat_from = ?) order by date_time asc', [req.query.chat_from, req.query.chat_to, req.query.chat_from, req.query.chat_to], (err, row) => {
+
+        conn.query('update chats set status=? where chat_from=? and chat_to=?', [1, req.query.chat_to, req.query.chat_from], (err, row3333) => {
+
+            if (row.length > 0) {
+
+                res.send({
+
+                    status: 'true',
+                    messages: row,
+
+                })
+            }
+            else {
+                res.send({
+
+                    status: 'failed',
+                    messages: [],
+
+                })
+            }
+        })
+
+    })
+})
+
+
+
+//end
+
 
 //users inbox
 
 router.get('/user_inbox?', (req, res) => {
 
-    conn.query('select chats.chat_from,members.user_profile_image,members.username,chats.content,chats.status,chats.date_time from chats left JOIN members on chats.chat_from_time = members.USERID where chats.chat_to = ?  GROUP BY chats.chat_from ORDER BY chats.date_time DESC', [req.query.id], (err, row) => {
-
+    conn.query('select chats.chat_from,chats.chat_to,members.user_profile_image,members.username,chats.status,chats.content,chats.status,chats.date_time from chats left JOIN members on chats.chat_from_time = members.USERID where chats.chat_to = ?  GROUP BY chats.chat_from ORDER BY chats.date_time DESC', [req.query.id], (err, row) => {
         if (row.length > 0) {
 
+            // for (let i = 0; i < row.length; i++) {
+            //     console.log(row[i].chat_from);
+            //     conn.query('select chats.chat_from,chats.chat_to,members.user_profile_image,members.username,chats.status,chats.content,chats.status,chats.date_time from chats left JOIN members on chats.chat_from_time = members.USERID where chats.chat_to != ? and chats.chat_from = ?  GROUP BY chats.chat_to ORDER BY chats.date_time DESC', [row[i].chat_from, req.query.id], (err, row1) => {
+
+            //         for (let j = 0; j < row1.length; j++) {
+
+            //             if (row[i].chat_from !== row1[j].chat_to) {
+            //                 row.push(row1[j]);
+
+            //             }
+            //         }
+
+
+            //                    if (row.length - 1 == i) {
             res.send({
                 status: 200,
                 chats: row
             })
+            //         }
+            //     })
+            // }
+
         }
         else {
             res.send({
@@ -895,26 +1120,38 @@ router.put('/accept_offer?', (req, res) => {
 
 router.post('/gig_fav?', (req, res) => {
 
-
-    conn.query('insert into favourites(user_id,gig_id) values(?,?)', [req.query.user_id, req.query.gig_id], (err, row) => {
-
-        if (!err) {
-
+    conn.query('select * from favourites where user_id = ? and gig_id = ?', [req.query.user_id, req.query.gig_id], (err, row1) => {
+        if (row1.length > 0) {
             res.send({
-                status: 200,
-                message: 'gig added to favourite successfully'
+
+                status: 400,
+                message: 'Gig already in Favourit'
             })
         }
         else {
 
-            res.send({
 
-                status: 400,
-                message: 'failed'
+
+            conn.query('insert into favourites(user_id,gig_id) values(?,?)', [req.query.user_id, req.query.gig_id], (err, row) => {
+
+                if (!err) {
+
+                    res.send({
+                        status: 200,
+                        message: 'gig added to favourite successfully'
+                    })
+                }
+                else {
+
+                    res.send({
+
+                        status: 400,
+                        message: 'failed'
+                    })
+                }
             })
         }
     })
-
 
 })
 
